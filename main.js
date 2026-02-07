@@ -1,3 +1,5 @@
+import confetti from 'canvas-confetti';
+
 const BACKGROUND_COLOR = "#ad5c79";
 const HEART_COLOR_RANGE_START = "#FF0000";
 const HEART_COLOR_RANGE_END = "#e2378d";
