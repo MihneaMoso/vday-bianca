@@ -15,12 +15,16 @@ function calculateDistance(centerX, centerY, mouseX, mouseY) {
 }
 
 function getRandomPosition(maxWidth, maxHeight) {
-  // Ensure button stays within canvas bounds with some padding
-  const padding = 10;
-  return {
-    x: padding + Math.random() * (maxWidth - noButton.offsetWidth - padding * 2),
-    y: padding + Math.random() * (maxHeight - noButton.offsetHeight - padding * 2)
-  };
+    // Ensure button stays within canvas bounds with some padding
+    const padding = 10;
+    return {
+        x:
+            padding +
+            Math.random() * (maxWidth - noButton.offsetWidth - padding * 2),
+        y:
+            padding +
+            Math.random() * (maxHeight - noButton.offsetHeight - padding * 2),
+    };
 }
 
 function randomColorInRange(start, end) {
@@ -42,6 +46,14 @@ function randomColorInRange(start, end) {
 
 function randomCoords(width, height) {
     return [Math.random() * width, Math.random() * height];
+}
+
+function launchConfetti() {
+    confetti({
+        particleCount: 100,
+        spread: 180,
+        origin: { y: 0.6 },
+    });
 }
 
 const canvas = document.getElementById("canvas");
@@ -108,10 +120,12 @@ function drawAllImages() {
         context.save();
 
         // Use percentage-based positions for responsive layout
-        let x = pos.xPercent * canvas.width;
-        let y = pos.yPercent * canvas.height;
+        // Add padding to prevent hearts from clustering at edges
+        const padding = HEART_SIZE / 2;
+        let x = padding + pos.xPercent * (canvas.width - HEART_SIZE);
+        let y = padding + pos.yPercent * (canvas.height - HEART_SIZE);
 
-        context.translate(x + HEART_SIZE / 2, y + HEART_SIZE / 2);
+        context.translate(x, y);
         context.rotate((pos.angle * Math.PI) / 180);
         context.drawImage(
             loadedImages[index],
@@ -184,14 +198,14 @@ document.addEventListener("mousemove", (e) => {
     // console.log(distance);
 
     // let distance_to_move = distance / ((canvas.width + canvas.height) / 2 / 240);
-    
+
     // console.log(distanceX, distanceY)
     if (distance < 50) {
         // Move element using absolute positioning instead of transform
         const pos = getRandomPosition(canvas.width, canvas.height);
-        
+
         // Reset transform and use absolute left/top positioning
-        noButton.style.transform = 'none';
+        noButton.style.transform = "none";
         noButton.style.left = pos.x + "px";
         noButton.style.top = pos.y + "px";
         // Make the yes button get bigger every time the user tries to press the no button
@@ -202,5 +216,42 @@ document.addEventListener("mousemove", (e) => {
 
 yesButton.onclick = () => {
     console.log("I love youuuuuuuu!!!!!");
-    
-}
+
+    // Hide both buttons
+    yesButton.style.display = "none";
+    noButton.style.display = "none";
+
+    const container = document.getElementById("container");
+    const gif = document.createElement("img");
+    gif.src = "./assets/happy-cat.gif"; // Path to GIF on disk
+    gif.alt = "Animation";
+    gif.style.position = "absolute";
+    gif.style.left = "50%";
+    gif.style.top = "70%";
+    gif.style.transform = "translate(-50%, -50%)";
+    gif.style.width = "200px";
+    gif.style.zIndex = "10";
+
+    container.appendChild(gif);
+
+    //  confetiiiii
+    // Fire every 1.5 seconds
+    launchConfetti();
+    setInterval(launchConfetti, 1500);
+    let overlayColor = 'purple';
+    setInterval(() => {
+        // Redraw original background first
+        redraw();
+        // Then overlay a semi-transparent color on top
+        overlayColor = overlayColor === 'purple' ? 'black' : 'purple';
+        context.globalAlpha = 0.3;
+        context.fillStyle = overlayColor;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.globalAlpha = 1.0;
+    }, 200);
+
+    const audio = new Audio("./assets/happy-sound.mp3");
+    audio.loop = true;
+    audio.volume = 1.0;
+    audio.play();
+};
