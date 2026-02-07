@@ -1,16 +1,43 @@
 const BACKGROUND_COLOR = "#ad5c79";
 const HEART_COLOR_RANGE_START = "#FF0000";
 const HEART_COLOR_RANGE_END = "#e2378d";
-const HEARTS_NUMBER = 30;
+const HEARTS_NUMBER = 40;
 const HEART_SIZE = 200;
+const BUTTONS_DISTANCE = 120;
+const SHIMMER_WIDTH = 100;
+const SHIMMER_OFFSET_CENTER = 60;
+
+const yesButton = document.getElementById("yes-button");
+const noButton = document.getElementById("no-button");
+
+function calculateDistance(centerX, centerY, mouseX, mouseY) {
+    return Math.hypot(mouseX - centerX, mouseY - centerY);
+}
+
+function getRandomPosition(maxWidth, maxHeight) {
+  // Ensure button stays within canvas bounds with some padding
+  const padding = 10;
+  return {
+    x: padding + Math.random() * (maxWidth - noButton.offsetWidth - padding * 2),
+    y: padding + Math.random() * (maxHeight - noButton.offsetHeight - padding * 2)
+  };
+}
 
 function randomColorInRange(start, end) {
-  const s = parseInt(start.slice(1), 16);
-  const e = parseInt(end.slice(1), 16);
-  const r = Math.floor(((s >> 16) & 0xff) + Math.random() * (((e >> 16) & 0xff) - ((s >> 16) & 0xff)));
-  const g = Math.floor(((s >> 8) & 0xff) + Math.random() * (((e >> 8) & 0xff) - ((s >> 8) & 0xff)));
-  const b = Math.floor((s & 0xff) + Math.random() * ((e & 0xff) - (s & 0xff)));
-  return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    const s = parseInt(start.slice(1), 16);
+    const e = parseInt(end.slice(1), 16);
+    const r = Math.floor(
+        ((s >> 16) & 0xff) +
+            Math.random() * (((e >> 16) & 0xff) - ((s >> 16) & 0xff)),
+    );
+    const g = Math.floor(
+        ((s >> 8) & 0xff) +
+            Math.random() * (((e >> 8) & 0xff) - ((s >> 8) & 0xff)),
+    );
+    const b = Math.floor(
+        (s & 0xff) + Math.random() * ((e & 0xff) - (s & 0xff)),
+    );
+    return "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("");
 }
 
 function randomCoords(width, height) {
@@ -33,31 +60,66 @@ function redraw() {
     // Draw background
     context.fillStyle = BACKGROUND_COLOR;
     context.fillRect(0, 0, canvas.width, canvas.height);
-    
+
     // Draw hearts if loaded
     if (loadedImages.length > 0) {
         drawAllImages();
     }
-    
+
+    drawButtons();
+
     // Draw text
-    context.font = '40px Arial';
-    context.fillStyle = 'black';
-    context.textAlign = 'center';
+    context.font = '40px "Playwrite CU"';
+    context.fillStyle = "black";
+    context.textAlign = "center";
     context.fillText("Bianca...", canvas.width / 2, canvas.height / 2 - 30);
-    context.fillText("Will you be my Valentine this year?", canvas.width / 2, canvas.height / 2 + 20);
+    context.fillText(
+        "Will you be my Valentine this year?",
+        canvas.width / 2,
+        canvas.height / 2 + 20,
+    );
+
+    const grad = context.createLinearGradient(0, 0, canvas.width, 0);
+    grad.addColorStop(0, "rgba(255,255,255,0)");
+    grad.addColorStop(0.5, "rgba(255,255,255,0.8)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+
+    context.fillStyle = grad;
+    context.globalCompositeOperation = "overlay"; // Blends to create sparkle
+    context.fillRect(
+        0,
+        canvas.height / 2 - SHIMMER_OFFSET_CENTER,
+        canvas.width,
+        SHIMMER_WIDTH,
+    ); // Overlay shimmer
+    context.globalCompositeOperation = "source-over"; // Reset
+}
+
+function drawButtons() {
+    yesButton.style.top = canvas.height / 2 + SHIMMER_OFFSET_CENTER + "px";
+    yesButton.style.left = canvas.width / 2 - BUTTONS_DISTANCE + "px";
+
+    noButton.style.top = canvas.height / 2 + SHIMMER_OFFSET_CENTER + "px";
+    noButton.style.left = canvas.width / 2 + BUTTONS_DISTANCE / 2 + "px";
 }
 
 function drawAllImages() {
     heartPositions.forEach((pos, index) => {
         context.save();
-        
+
         // Use percentage-based positions for responsive layout
         let x = pos.xPercent * canvas.width;
         let y = pos.yPercent * canvas.height;
-        
+
         context.translate(x + HEART_SIZE / 2, y + HEART_SIZE / 2);
         context.rotate((pos.angle * Math.PI) / 180);
-        context.drawImage(loadedImages[index], -HEART_SIZE / 2, -HEART_SIZE / 2, HEART_SIZE, HEART_SIZE);
+        context.drawImage(
+            loadedImages[index],
+            -HEART_SIZE / 2,
+            -HEART_SIZE / 2,
+            HEART_SIZE,
+            HEART_SIZE,
+        );
         context.restore();
     });
 }
@@ -76,32 +138,69 @@ fetch("./assets/heart.svg")
         const svgDoc = parser.parseFromString(data, "image/svg+xml");
         for (let i = 0; i < HEARTS_NUMBER; i++) {
             const svg = svgDoc.querySelector("svg");
-            svg.setAttribute("stroke", randomColorInRange(HEART_COLOR_RANGE_START, HEART_COLOR_RANGE_END));
-    
+            svg.setAttribute(
+                "stroke",
+                randomColorInRange(
+                    HEART_COLOR_RANGE_START,
+                    HEART_COLOR_RANGE_END,
+                ),
+            );
+
             svgData = new XMLSerializer().serializeToString(svgDoc);
             svgDatas.push(svgData);
-            
+
             // Store random position and angle for each heart
             heartPositions.push({
                 xPercent: Math.random(),
                 yPercent: Math.random(),
-                angle: Math.random() * 65
+                angle: Math.random() * 65,
             });
         }
-        
+
         let loadedCount = 0;
-        svgDatas.forEach(svgData => { 
+        svgDatas.forEach((svgData) => {
             const img = new Image();
-            
+
             img.onload = function () {
                 loadedCount++;
                 loadedImages.push(img);
                 if (loadedCount === svgDatas.length) {
                     redraw();
                 }
-            }
-        
-            
+            };
+
             img.src = "data:image/svg+xml," + encodeURIComponent(svgData);
         });
     });
+
+// No button behaviour
+document.addEventListener("mousemove", (e) => {
+    const rect = noButton.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const distance = calculateDistance(centerX, centerY, e.clientX, e.clientY);
+    // let deltaX = e.clientX - centerX;
+    // let deltaY = e.clientY - centerY;
+    // console.log(distance);
+
+    // let distance_to_move = distance / ((canvas.width + canvas.height) / 2 / 240);
+    
+    // console.log(distanceX, distanceY)
+    if (distance < 50) {
+        // Move element using absolute positioning instead of transform
+        const pos = getRandomPosition(canvas.width, canvas.height);
+        
+        // Reset transform and use absolute left/top positioning
+        noButton.style.transform = 'none';
+        noButton.style.left = pos.x + "px";
+        noButton.style.top = pos.y + "px";
+        // Make the yes button get bigger every time the user tries to press the no button
+        const currentSize = parseInt(yesButton.style.fontSize) || 32;
+        yesButton.style.fontSize = `${currentSize + 1}px`;
+    }
+});
+
+yesButton.onclick = () => {
+    console.log("I love youuuuuuuu!!!!!");
+    
+}
